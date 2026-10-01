@@ -1,5 +1,5 @@
 (function(root){
-const RTG='0C 0D 0E 0F 0G 0H 0L 0M 0N 0P 0R 0S 0T 0U 0V 1C 1D 1E 1F 1G 1H 1J 1L 1M 1N 1P 1R 1S 1T 1U 1V 2N 2P 2R 2S 2T 2U 2V 3T 3U 5V 9S'.split(' ');
+const RTG='0C 0D 0E 0F 0G 0H 0L 0M 0N 0P 0R 0S 0T 0U 0V 1C 1D 1E 1F 1G 1H 1J 1L 1M 1N 1P 1R 1S 1T 1U 1V 2C 2D 2E 2F 2G 2H 2L 2M 2N 2P 2R 2S 2T 2U 2V 3T 3U 5V 9S'.split(' ');
 const TP='0A 0B 0K 0W 0Y 1A 1B 1K 1W 1X 1Y 1Z 2W 2Y 2Z 3W 3Z 4S 5S 7S 8S AA AS BG BR BS DA LC PW RS SA XX'.split(' ');
 function parse(text){
  const records=[],errors=[],seen=new Set(),slots=new Set();

@@ -18,9 +18,20 @@ function renderDetail(){
  $('cross').querySelectorAll('button').forEach(el=>el.onclick=()=>{selectedRow=el.dataset.row;renderDetail()});
  if(!selectedRow)selectedRow=result.issues.find(s=>s.block===selected&&s.bay===selectedBay)?.row||rows.find(r=>result.height(selected,selectedBay,r)>0);
  const s=result.stacks.get([selected,selectedBay,selectedRow].join('|'));
- $('containerDetails').innerHTML=s?`<div class="containerinfo"><strong>Row ${s.row} · ${s.chimney?'Chimney':'Không chimney'} · Cao ${s.height} tầng</strong><p>Row trái: ${s.left===null?'Biên ngoài':s.left+' tầng'} · Row phải: ${s.right===null?'Biên ngoài':s.right+' tầng'}</p>`+s.containers.slice().sort((a,b)=>b.tier-a.tier).map(c=>`<p><strong>T${c.tier} · ${escapeHTML(c.id)}</strong><br>${escapeHTML(c.size)} · ${escapeHTML(c.status)} · ${escapeHTML(c.operator)} · ${escapeHTML(c.port)}</p>`).join('')+'</div>':'<div class="containerinfo">Row '+selectedRow+': không có dữ liệu container.</div>';
+ $('containerDetails').innerHTML=s?`<div class="containerinfo"><strong>Row ${s.row} · ${s.chimney?'Chimney':'Không chimney'} · Tier ${s.height}</strong><p>Row trái: ${s.left===null?'Biên ngoài':'Tier '+s.left} · Row phải: ${s.right===null?'Biên ngoài':'Tier '+s.right}</p>`+s.containers.slice().sort((a,b)=>b.tier-a.tier).map(c=>`<p><strong>T${c.tier} · ${escapeHTML(c.id)}</strong><br>${escapeHTML(c.size)} · ${escapeHTML(c.status)} · ${escapeHTML(c.operator)} · ${escapeHTML(c.port)}</p>`).join('')+'</div>':'<div class="containerinfo">Row '+selectedRow+': không có dữ liệu container.</div>';
 }
 $('bay').onchange=()=>{selectedBay=$('bay').value;selectedRow=null;renderDetail()};
+$('clear').onclick=()=>{
+ $('source').value='';records=[];result=Chimney.analyze([]);selected=null;selectedBay=null;selectedRow=null;loaded=false;
+ for(const id of ['total','issueCount','blockCount','errorCount'])$(id).textContent='—';
+ $('notice').textContent='Đã xóa dữ liệu. Dán dữ liệu mới để kiểm tra.';
+ $('validation').hidden=true;$('validation').open=false;$('errorTitle').textContent='';$('errors').innerHTML='';
+ $('resultRows').innerHTML='';$('resultNote').textContent='Kết quả sẽ xuất hiện sau khi kiểm tra.';
+ $('selectedTitle').textContent='Chọn block';$('detailNote').textContent='Bấm vào block để xem vị trí.';
+ $('bay').innerHTML='';$('bay').disabled=true;
+ for(const id of ['baymap','cross','containerDetails'])$(id).innerHTML='';
+ renderBlocks();$('source').focus();
+};
 function run(demo=false){const parsed=Chimney.parse($('source').value);records=parsed.records;result=Chimney.analyze(records);loaded=true;
  $('total').textContent=records.length.toLocaleString('vi-VN');$('issueCount').textContent=result.issues.length;$('blockCount').textContent=new Set(result.issues.map(s=>s.block)).size;$('errorCount').textContent=parsed.errors.length;
  $('notice').textContent=(demo?'DỮ LIỆU MINH HỌA · ':'')+`${records.length} container hợp lệ; ${parsed.errors.length} dòng lỗi.`+(parsed.errors.length?' Kết quả tạm tính: cần sửa dòng lỗi và kiểm tra lại.':'');

@@ -1,5 +1,49 @@
 const $=id=>document.getElementById(id),escapeHTML=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let records=[],result=Chimney.analyze([]),selected=null,selectedBay=null,selectedRow=null,loaded=false;
+const copyHelp='Copy container trên cùng của mỗi vị trí chimney, các số cách nhau bằng dấu phẩy để dán vào Spinnaker.';
+let copyRevision=0;
+function chimneyContainerIds(){
+ return [...new Set(result.issues.map(s=>s.containers.find(c=>c.tier===s.height)?.id.trim().toUpperCase()).filter(Boolean))];
+}
+function resetCopy(message=copyHelp){
+ copyRevision++;
+ const count=loaded?chimneyContainerIds().length:0;
+ $('copyChimney').disabled=!count;
+ $('copyChimney').textContent=count?`Copy container chimney (${count})`:'Copy container chimney';
+ $('copyStatus').textContent=message;
+ $('copyFallback').hidden=true;$('copyList').value='';
+}
+$('copyChimney').onclick=async()=>{
+ if(!loaded)return;
+ const ids=chimneyContainerIds();
+ if(!ids.length)return;
+ const text=ids.join(','),revision=copyRevision;
+ $('copyChimney').disabled=true;
+ $('copyStatus').textContent='Đang copy danh sách container…';
+ let copied=false;
+ try{
+  if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);copied=true;}
+ }catch(error){/* Try local copy or let the user copy the selected list. */}
+ if(revision!==copyRevision)return;
+ if(!copied){
+  $('copyFallback').hidden=false;$('copyList').value=text;
+  $('copyList').focus();$('copyList').select();
+  try{copied=document.execCommand('copy');}catch(error){copied=false;}
+ }
+ if(copied){
+  $('copyFallback').hidden=true;$('copyList').value='';
+  $('copyStatus').textContent=`Đã copy ${ids.length} số container trên cùng. Dán vào Spinnaker bằng Ctrl+V.`;
+ }else{
+  $('copyStatus').textContent='Chưa copy tự động được. Danh sách đã được chọn bên dưới; nhấn Ctrl+C rồi dán vào Spinnaker.';
+ }
+ $('copyChimney').disabled=false;
+ if(copied)$('copyChimney').focus();
+};
+$('source').addEventListener('input',()=>{
+ loaded=false;
+ resetCopy('Dữ liệu đã thay đổi. Bấm Kiểm tra chimney trước khi copy danh sách mới.');
+ $('notice').textContent='Dữ liệu đã thay đổi; kết quả đang hiển thị chưa được cập nhật. Bấm Kiểm tra chimney để tính lại.';
+});
 function renderBlocks(){
  for(const [id,blocks] of [['rtg',Chimney.RTG],['tp',Chimney.TP]]){
  $(id).innerHTML=blocks.map(b=>{const count=records.filter(c=>c.block===b).length,n=result.issues.filter(s=>s.block===b).length;return `<button class="block ${count?'populated':''} ${n?'danger':''} ${b===selected?'selected':''}" data-block="${b}"><strong>${b}</strong><small>${n?n+' chimney':count?count+' cont':'Chưa có dữ liệu'}</small></button>`}).join('');
@@ -23,6 +67,7 @@ function renderDetail(){
 $('bay').onchange=()=>{selectedBay=$('bay').value;selectedRow=null;renderDetail()};
 $('clear').onclick=()=>{
  $('source').value='';records=[];result=Chimney.analyze([]);selected=null;selectedBay=null;selectedRow=null;loaded=false;
+ resetCopy();
  for(const id of ['total','issueCount','blockCount','errorCount'])$(id).textContent='—';
  $('notice').textContent='Đã xóa dữ liệu. Dán dữ liệu mới để kiểm tra.';
  $('validation').hidden=true;$('validation').open=false;$('errorTitle').textContent='';$('errors').innerHTML='';
@@ -33,6 +78,7 @@ $('clear').onclick=()=>{
  renderBlocks();$('source').focus();
 };
 function run(demo=false){const parsed=Chimney.parse($('source').value);records=parsed.records;result=Chimney.analyze(records);loaded=true;
+ resetCopy();
  $('total').textContent=records.length.toLocaleString('vi-VN');$('issueCount').textContent=result.issues.length;$('blockCount').textContent=new Set(result.issues.map(s=>s.block)).size;$('errorCount').textContent=parsed.errors.length;
  $('notice').textContent=(demo?'DỮ LIỆU MINH HỌA · ':'')+`${records.length} container hợp lệ; ${parsed.errors.length} dòng lỗi.`+(parsed.errors.length?' Kết quả tạm tính: cần sửa dòng lỗi và kiểm tra lại.':'');
  $('validation').hidden=!parsed.errors.length;$('errorTitle').textContent=parsed.errors.length+' dòng chưa được tính — bấm để xem';$('errors').innerHTML=parsed.errors.slice(0,150).map(e=>`<p>Dòng ${e.line}: ${escapeHTML(e.reason)}</p>`).join('');

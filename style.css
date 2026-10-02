@@ -3,3 +3,6 @@
 #cross{overflow-x:auto}.crossgrid,.rowlabels{grid-template-columns:repeat(var(--rows,8),minmax(38px,1fr));min-width:calc(var(--rows,8)*44px)}
 
 .action-buttons{display:flex;gap:10px;flex-wrap:wrap}
+
+button:disabled{opacity:.5;cursor:not-allowed}button:disabled:hover{filter:none}
+#copyList{min-height:150px}

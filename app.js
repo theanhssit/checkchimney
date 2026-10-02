@@ -1,9 +1,9 @@
 const $=id=>document.getElementById(id),escapeHTML=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let records=[],result=Chimney.analyze([]),selected=null,selectedBay=null,selectedRow=null,loaded=false;
-const copyHelp='Copy container trên cùng của mỗi vị trí chimney, các số cách nhau bằng dấu phẩy để dán vào Spinnaker.';
+const copyHelp='Copy toàn bộ container ở tất cả tier của mỗi vị trí chimney (cùng block, bay, row), các số cách nhau bằng dấu phẩy để dán vào Spinnaker.';
 let copyRevision=0;
 function chimneyContainerIds(){
- return [...new Set(result.issues.map(s=>s.containers.find(c=>c.tier===s.height)?.id.trim().toUpperCase()).filter(Boolean))];
+ return [...new Set(result.issues.flatMap(s=>s.containers.slice().sort((a,b)=>a.tier-b.tier).map(c=>c.id.trim().toUpperCase())).filter(Boolean))];
 }
 function resetCopy(message=copyHelp){
  copyRevision++;
@@ -20,24 +20,30 @@ $('copyChimney').onclick=async()=>{
  const text=ids.join(','),revision=copyRevision;
  $('copyChimney').disabled=true;
  $('copyStatus').textContent='Đang copy danh sách container…';
+ // Keep a selectable list available even when clipboard access is blocked.
+ $('copyFallback').hidden=false;$('copyList').value=text;
+ $('copyList').focus();$('copyList').select();
  let copied=false;
+ // Run the synchronous fallback while the click still has user activation.
+ try{copied=document.execCommand('copy');}catch(error){copied=false;}
+ let timeout;
  try{
-  if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);copied=true;}
- }catch(error){/* Try local copy or let the user copy the selected list. */}
+  if(!copied&&navigator.clipboard?.writeText){
+   copied=await Promise.race([
+    navigator.clipboard.writeText(text).then(()=>true),
+    new Promise(resolve=>{timeout=setTimeout(()=>resolve(false),2500);})
+   ]);
+  }
+ }catch(error){copied=false;}
+ finally{clearTimeout(timeout);}
  if(revision!==copyRevision)return;
- if(!copied){
-  $('copyFallback').hidden=false;$('copyList').value=text;
-  $('copyList').focus();$('copyList').select();
-  try{copied=document.execCommand('copy');}catch(error){copied=false;}
- }
  if(copied){
-  $('copyFallback').hidden=true;$('copyList').value='';
-  $('copyStatus').textContent=`Đã copy ${ids.length} số container trên cùng. Dán vào Spinnaker bằng Ctrl+V.`;
+  $('copyStatus').textContent=`Đã copy ${ids.length} số container ở tất cả tier của các vị trí chimney. Dán vào Spinnaker bằng Ctrl+V.`;
  }else{
+  $('copyList').focus();$('copyList').select();
   $('copyStatus').textContent='Chưa copy tự động được. Danh sách đã được chọn bên dưới; nhấn Ctrl+C rồi dán vào Spinnaker.';
  }
  $('copyChimney').disabled=false;
- if(copied)$('copyChimney').focus();
 };
 $('source').addEventListener('input',()=>{
  loaded=false;
